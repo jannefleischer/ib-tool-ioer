@@ -205,7 +205,7 @@ def Shp_Area(filename, Fieldname='Shape_Area'):
     """adds shape area field to file"""
     if len(arcpy.ListFields(filename, Fieldname)) == 0:
         arcpy.AddField_management(filename, '{}'.format(Fieldname), "DOUBLE")
-    arcpy.management.CalculateField(filename, '{}'.format(Fieldname), "!shape.geodesicArea@SQUAREMETERS!", "PYTHON_9.3",
+    arcpy.management.CalculateField(filename, '{}'.format(Fieldname), "!shape.geodesicArea@SQUAREMETERS!", "PYTHON_3",
                                     None)
 
 
@@ -213,13 +213,13 @@ def Shp_Length(filename):
     """adds shape length field to file"""
     if len(arcpy.ListFields(filename, "Shape_Len")) == 0:
         arcpy.AddField_management(filename, "Shape_Len", "DOUBLE")
-    arcpy.management.CalculateField(filename, "Shape_Len", "!shape.geodesicLength@METERS!", "PYTHON_9.3", None)
+    arcpy.management.CalculateField(filename, "Shape_Len", "!shape.geodesicLength@METERS!", "PYTHON_3", None)
 
 
 def Rename_Field(filename, OldFieldName, NewFieldName, Type):
     """renames field of file"""
     arcpy.AddField_management(filename, NewFieldName, Type, '#', '#', '#', '#', 'NULLABLE', 'NON_REQUIRED', '#')
-    arcpy.management.CalculateField(filename, NewFieldName, "!{}!".format(OldFieldName), "PYTHON_9.3", None)
+    arcpy.management.CalculateField(filename, NewFieldName, "!{}!".format(OldFieldName), "PYTHON_3", None)
     arcpy.DeleteField_management(filename, OldFieldName)
 
 
@@ -407,7 +407,7 @@ class IbTool:
         HU_vert_start = mem("HU_vert_start")
 
         arcpy.AddField_management(HU_input, "FID_ORIG")
-        arcpy.management.CalculateField(HU_input, "FID_ORIG", "!FID!", "PYTHON_9.3", '')
+        arcpy.management.CalculateField(HU_input, "FID_ORIG", "!FID!", "PYTHON_3", '')
         arcpy.management.SplitLine(HU_input, "in_memory\HU_vert")
         arcpy.management.FeatureVerticesToPoints("in_memory\HU_vert", HU_vert_start, "START")
         arcpy.management.FeatureVerticesToPoints("in_memory\HU_vert", "in_memory\HU_vert_end", "END")
@@ -671,7 +671,7 @@ class IbTool:
         arcpy.DeleteFeatures_management(Blocks_FL)
         arcpy.management.AddField(Blocks, "NAME", "Text", None, None, None, None, "NULLABLE", "NON_REQUIRED", None)
         Expression = '"Block_{}".format(!FID!)'
-        arcpy.management.CalculateField(Blocks, "NAME", Expression, "PYTHON_9.3", None)
+        arcpy.management.CalculateField(Blocks, "NAME", Expression, "PYTHON_3", None)
         arcpy.CopyFeatures_management(Blocks, gdb("Blocks"))
         arcpy.CopyFeatures_management(gdb("Blocks"), Blocks)
         DelName([HU_Input_FL, Blocks_FL, gdb("Blocks"), SettlBuffer_Outline, Strassen_Intersect, Strassen_Outline])
@@ -780,7 +780,7 @@ class IbTool:
         Shp_Length(HU_Input)
         arcpy.CalculateField_management(HU_Input, "SHP_IDX",
                                         '!Shape_Len! /(2 * math.sqrt (4 * math.atan (1)* !Shape_Area! ))',
-                                        'PYTHON_9.3', '#')
+                                        'PYTHON_3', '#')
         HU_Input_FL = arcpy.MakeFeatureLayer_management(HU_Input)
         arcpy.management.SelectLayerByAttribute(HU_Input_FL, "NEW_SELECTION", "SHP_IDX < 1.05")
         arcpy.DeleteFeatures_management(HU_Input_FL)
@@ -886,12 +886,12 @@ class IbTool:
         arcpy.AddField_management(HU_Bloeck_Merge_Join_Dissolve, "AREA_BLK_M", "DOUBLE")
         arcpy.AddField_management(Bloecke, "SHAPE_AREA", "DOUBLE")
         arcpy.management.CalculateField(HU_Bloeck_Merge_Join_Dissolve, "AREA_BLK_M", "!shape.geodesicArea@SQUAREMETERS!",
-                                        "PYTHON_9.3", None)
-        arcpy.management.CalculateField(Bloecke, "SHAPE_AREA", "!shape.geodesicArea@SQUAREMETERS!", "PYTHON_9.3", None)
+                                        "PYTHON_3", None)
+        arcpy.management.CalculateField(Bloecke, "SHAPE_AREA", "!shape.geodesicArea@SQUAREMETERS!", "PYTHON_3", None)
         arcpy.management.JoinField(Bloecke, "NAME", HU_Bloeck_Merge_Join_Dissolve, "NAME", "AREA_BLK_M")
         arcpy.AddField_management(Bloecke, "OVERLAP", "DOUBLE")
         # calculate overlap
-        arcpy.management.CalculateField(Bloecke, "OVERLAP", "!AREA_BLK_M! / !SHAPE_AREA! * 100", "PYTHON_9.3", None)
+        arcpy.management.CalculateField(Bloecke, "OVERLAP", "!AREA_BLK_M! / !SHAPE_AREA! * 100", "PYTHON_3", None)
         # select buildings and blocks below footprintdensitythreshold an return them
         arcpy.MakeFeatureLayer_management(Bloecke, "Blocks_FL")
         Overlap = "OVERLAP > {}".format(footprintdensitythreshold)
@@ -932,7 +932,7 @@ class IbTool:
         MergeList = arcpy.ListFeatureClasses('BlockClip_*')
         DelName(MergeList)
         arcpy.AddField_management(Bloecke, "SHAPE_AREA", "DOUBLE")
-        arcpy.management.CalculateField(Bloecke, "SHAPE_AREA", "!shape.geodesicArea@SQUAREMETERS!", "PYTHON_9.3", None)
+        arcpy.management.CalculateField(Bloecke, "SHAPE_AREA", "!shape.geodesicArea@SQUAREMETERS!", "PYTHON_3", None)
         arcpy.management.MultipartToSinglepart(HU_Input, HU_input_SP)
         arcpy.management.MinimumBoundingGeometry(HU_input_SP, HU_Rectangle, "RECTANGLE_BY_AREA", "NONE", None,
                                                  "NO_MBG_FIELDS")
@@ -950,18 +950,18 @@ class IbTool:
                 arcpy.analysis.Clip(HU_Rect_Buff_FL, SelBlock_FL, BlockClip, None)
                 arcpy.AddField_management(BlockClip, "NAME", "TEXT")
                 Exp = '"BLK_{}_o"'.format(x[0])
-                arcpy.management.CalculateField(BlockClip, "NAME", Exp, "PYTHON_9.3")
+                arcpy.management.CalculateField(BlockClip, "NAME", Exp, "PYTHON_3")
         del cursor16
         MergeList = arcpy.ListFeatureClasses('BlockClip_*')
         arcpy.management.Merge(MergeList, Bloeck_Merge)
         DelName(MergeList)
 
         arcpy.AddField_management(Bloeck_Merge, "AREA_BLK_M", "DOUBLE")
-        arcpy.management.CalculateField(Bloeck_Merge, "AREA_BLK_M", "!shape.geodesicArea@SQUAREMETERS!", "PYTHON_9.3",
+        arcpy.management.CalculateField(Bloeck_Merge, "AREA_BLK_M", "!shape.geodesicArea@SQUAREMETERS!", "PYTHON_3",
                                         None)
         Join_Field(Bloecke, "NAME", Bloeck_Merge, "NAME", "AREA_BLK_M")
         arcpy.AddField_management(Bloecke, "OVERLAP", "DOUBLE")
-        arcpy.management.CalculateField(Bloecke, "OVERLAP", "!AREA_BLK_M! / !SHAPE_AREA! * 100", "PYTHON_9.3", None)
+        arcpy.management.CalculateField(Bloecke, "OVERLAP", "!AREA_BLK_M! / !SHAPE_AREA! * 100", "PYTHON_3", None)
         arcpy.MakeFeatureLayer_management(Bloecke, "Blocks_FL")
         Overlap = "OVERLAP < {}".format(share)
         NewSelection = arcpy.management.SelectLayerByAttribute("Blocks_FL", "NEW_SELECTION", Overlap)
@@ -1041,12 +1041,14 @@ class IbTool:
         if Ext == "global":
 
             with arcpy.da.SearchCursor(Partition, ["NAME"]) as cursor23:
-                for x in cursor23:
+                for zae_i, x in enumerate(cursor23):
                     Partition_FL = arcpy.MakeFeatureLayer_management(Partition)
                     Strassen_FL = arcpy.MakeFeatureLayer_management(InputStrNetwork)
                     InputHU_FL = arcpy.MakeFeatureLayer_management(InputBdg)
 
                     Part_Name = x[0]
+                    if zae_i%10==0:
+                        Log('Debug', '  Calculate Partition (' + str(zae_i) + '):' + str(x[0]))
                     whereclause = '"NAME" = \'%s\'' % (Part_Name)
                     Sel = arcpy.management.SelectLayerByAttribute(Partition_FL, "NEW_SELECTION", whereclause)
                     arcpy.CopyFeatures_management(Sel, SelPart)
@@ -1069,7 +1071,7 @@ class IbTool:
         arcpy.management.AddField(Inner_Blocks, "NAME", "Text", None, None, None, None, "NULLABLE", "NON_REQUIRED",
                                   None)
         Expression = '"Block_{}".format(!FID!)'
-        arcpy.management.CalculateField(Inner_Blocks, "NAME", Expression, "PYTHON_9.3", None)
+        arcpy.management.CalculateField(Inner_Blocks, "NAME", Expression, "PYTHON_3", None)
 
         result = arcpy.GetCount_management(Inner_Blocks)
         count = int(result.getOutput(0))
@@ -1520,7 +1522,7 @@ class IbTool:
 
         arcpy.management.FeatureToPoint(HU_Input, HU_Points, "INSIDE")
         arcpy.AddField_management(SelMST, "DIFF_LENG", "DOUBLE")
-        arcpy.management.CalculateField(SelMST, "DIFF_LENG", "!Shape_Len!", "PYTHON_9.3", '')
+        arcpy.management.CalculateField(SelMST, "DIFF_LENG", "!Shape_Len!", "PYTHON_3", '')
         arcpy.analysis.SpatialJoin(SelMST, HU_Points, MST_Input_Join, "JOIN_ONE_TO_MANY", "KEEP_ALL", None, "INTERSECT",
                                    None, '')
         MST_List = []
@@ -1802,7 +1804,7 @@ class IbTool:
             arcpy.FeatureToLine_management(InputGaps, InputGaps_line)
             arcpy.Dissolve_management(InputGaps_line, InputGaps_diss, "#", "#", "SINGLE_PART", "DISSOLVE_LINES")
             arcpy.AddField_management(InputGaps_diss, "ID", "TEXT")
-            arcpy.management.CalculateField(InputGaps_diss, "ID", "!FID!", "PYTHON_9.3")
+            arcpy.management.CalculateField(InputGaps_diss, "ID", "!FID!", "PYTHON_3")
             Shp_Length(InputGaps_diss)
             Rename_Field(InputGaps_diss, "Shape_Len", "Shape_L1", "DOUBLE")
             arcpy.management.SplitLine(InputGaps_diss, InputGaps_line_vert)
@@ -1817,7 +1819,7 @@ class IbTool:
                                       "MULTI_PART", "DISSOLVE_LINES")
             arcpy.AddField_management(InputGaps_line_diss, "LengPer", "DOUBLE")
             arcpy.management.CalculateField(InputGaps_line_diss, "LengPer", "(!SUM_Shape_! / !MEAN_Shape! * 100)",
-                                            "PYTHON_9.3")
+                                            "PYTHON_3")
             InputGaps_line_diss_FL = arcpy.MakeFeatureLayer_management(InputGaps_line_diss)
             Sel = arcpy.management.SelectLayerByAttribute(InputGaps_line_diss_FL, "NEW_SELECTION",
                                                           "LengPer < {}".format(lengthpercentage))
@@ -2166,7 +2168,7 @@ class IbTool:
                 arcpy.management.FeatureToPolygon(rn_merge, rn_merge_ply, None, "ATTRIBUTES", None)
                 arcpy.AddField_management(rn_merge_ply, "Name", "TEXT")
                 try:
-                    arcpy.management.CalculateField(rn_merge_ply, "Name", "'RoBl_'+ str(!OID!)", "PYTHON_9.3", None)
+                    arcpy.management.CalculateField(rn_merge_ply, "Name", "'RoBl_'+ str(!OID!)", "PYTHON_3", None)
                 except:
                     pass
                 arcpy.analysis.Split(ugb_symdiff_FL, rn_merge_ply, "Name", Workspace, None)
@@ -2219,7 +2221,7 @@ class IbTool:
 
         arcpy.management.AddField(InputPoly, "NAME", "Text", None, None, None, None, "NULLABLE", "NON_REQUIRED", None)
         Expression = '"Block_{}".format(!FID!)'
-        arcpy.management.CalculateField(InputPoly, "NAME", Expression, "PYTHON_9.3", None)
+        arcpy.management.CalculateField(InputPoly, "NAME", Expression, "PYTHON_3", None)
         Parts_Overlap = IbTools5.FootprintDensity(InputBdg, InputPoly, footprintdensitythreshold)
         arcpy.analysis.SpatialJoin(InputPoly, InputBdg, InputPoly_Join, "JOIN_ONE_TO_ONE", "KEEP_ALL", '', "INTERSECT",
                                    None, '')
@@ -2304,9 +2306,11 @@ def main():
 
         # check python version
         if sys.version_info[0] > 2:
-            raise Exception(Log('Alert', "Python has to be Python 2"))
+            pass
+            #raise Exception(Log('Alert', "Python has to be Python 2"))
 
         # create auxiliary data
+        Log('Debug', "create auxiliary data")
         j = 1
         AuxFileList = []
         AuxLayers = [Veg_Layer]
@@ -2320,13 +2324,18 @@ def main():
             AuxFileList.append(filename)
             j = j + 1
         AuxFileList.append(Strassen)
+        Log('Debug', "  merge")
         arcpy.Merge_management(AuxFileList, AuxLayers_Line)
+        Log('Debug', "  fix")
         arcpy.RepairGeometry_management(AuxLayers_Line)
+        Log('Debug', "  Line to Poly")
         arcpy.FeatureToPolygon_management(AuxLayers_Line, AuxLayers_Poly)
 
+        Log('Debug', "IbTool initiated")
         IbToolsStart = IbTool(Workspace)
 
         # create list of partitions depending on given parameters
+        Log('Debug', "create list of partitions depending on given parameters")
         if str(partlist[0]) == str('#'):
             if partstart == -1 or partend == -1:
                 # print("partlist and partstart without values")
@@ -2355,7 +2364,8 @@ def main():
             for j in partlist:
                 newlist.append(j.replace('\n', ''))
             partlist = newlist
-
+        Log('Debug', '  ' + str(partlist))
+        
         if DelPartLog == 'True':
             if os.path.isfile(PartLogPath):
                 os.remove(PartLogPath)
@@ -2655,7 +2665,7 @@ def main():
         DelName(['IB_Tool_Results', 'Tmp'])
 
     except Exception as e:
-
+        raise e
         time.sleep(3)
         raw_input("Press key to exit.")
         sys.exit(-1)

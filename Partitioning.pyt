@@ -40,7 +40,7 @@ arcpy.CheckOutExtension("Spatial")
 class Toolbox(object):
     def __init__(self):
         self.label =  "ib-tool2_partitioning "
-        self.alias  = "partitioning "
+        self.alias  = "partitioning"
         self.description = "ArcGIS toolbox for partitioning of geodata based on building footprints"
 
         # List of tool classes associated with this toolbox
@@ -76,45 +76,69 @@ class ibtool:
         arcpy.CheckOutExtension("Spatial")
 
         arcpy.env.overwriteOutput = True
+        arcpy.AddMessage("  Start FeatureToPoint")
         arcpy.management.FeatureToPoint(Input_feature, Input_feature_point, "INSIDE")
 
         #  Creates rasters with density values
+        arcpy.AddMessage("  Creates rasters with density values")
         HU_dest = arcpy.sa.PointDensity(Input_feature_point, "NONE", cell_size, "Circle {} MAP".format(radius), "SQUARE_METERS")
 
         #  Raster to point
+        arcpy.AddMessage("  Start Raster to point")
         arcpy.RasterToPoint_conversion(HU_dest, HU_Raster, 'Value')
 
         #  Generates point grid clusters
+        arcpy.AddMessage("  Generates point grid clusters")
         arcpy.MakeFeatureLayer_management(HU_Raster, HU_Raster_Layer, '"grid_code" > {}'.format(density_value))
         arcpy.CopyFeatures_management(HU_Raster_Layer, HU_Raster_Feature)
 
         #  generates Thiessen polygons
+        arcpy.AddMessage("  Generates Thiessen polygons")
         arcpy.CreateThiessenPolygons_analysis(HU_Raster_Feature, Thiess_Poly, 'ONLY_FID')
 
         #  Polygons to lines
+        arcpy.AddMessage("  Polygons to lines")
         arcpy.FeatureToLine_management(Thiess_Poly, Thiess_Line, '#', 'ATTRIBUTES')
 
         # divides the Thisssen lines at the intersections
+        arcpy.AddMessage("  Divides the Thisssen lines at the intersections")
         arcpy.SplitLine_management(Thiess_Line, Thiess_Split)
 
         # Deletes all lines in the proximity of the point grid clusters
+        arcpy.AddMessage("  Deletes all lines in the proximity of the point grid clusters")
         arcpy.MakeFeatureLayer_management(Thiess_Split, Thiess_Split_Lay)
         arcpy.SelectLayerByLocation_management(Thiess_Split_Lay, 'WITHIN_A_DISTANCE', HU_Raster_Layer, radius_del, 'NEW_SELECTION')
         arcpy.DeleteFeatures_management(Thiess_Split_Lay)
 
         # creates settlement boundary polygon
+        arcpy.AddMessage("  Creates settlement boundary polygon")
         arcpy.FeatureToPolygon_management(Thiess_Split_Lay, Poly_Grenz, '#', 'ATTRIBUTES', '#')
 
         # Delete the temporary files
+        arcpy.AddMessage("  Cleaning up temporary files")
         del_list = [HU_dest, HU_Raster, HU_Raster_Feature, HU_Raster_Layer, Thiess_Line, Thiess_Poly, Thiess_Split, Thiess_Split_Lay]
         for list in del_list:
             arcpy.Delete_management(list)
 
+        wsType  = arcpy.Describe(arcpy.env.workspace).workspaceType
+        if (wsType=='FileSystem'): #For Shapefile-Workspace and "in_memory"
+            Poly_Grenz = Poly_Grenz + '.shp'
+        
         #  Add Name-Field
+        arcpy.AddMessage("  Adjust naming convention")
         if len(arcpy.ListFields(Poly_Grenz, "NAME")) > 0:
             arcpy.DeleteField_management(Poly_Grenz, "NAME")
         arcpy.AddField_management(Poly_Grenz, "NAME", "TEXT")
-        arcpy.management.CalculateField(Poly_Grenz, "NAME", "'PART_'+ str(!OBJECTID!)", "PYTHON_9.3", None)
+
+        if int(arcpy.GetInstallInfo()['Version'].split('.',1)[0])>3: #its ArcMap
+            interpreter = 'PYTHON_9.3'
+        else : #its Pro
+            interpreter = 'PYTHON3'
+
+        if (wsType=='FileSystem'): #For Shapefile-Workspace and "in_memory"
+            arcpy.management.CalculateField(Poly_Grenz, "NAME", "'PART_'+ str(!FID!+1)", interpreter, None)
+        elif (wsType=='LocalDatabase' or wsType=='RemoteDatabase'): #For GeoDataBase-Workspace and "memory"
+            arcpy.management.CalculateField(Poly_Grenz, "NAME", "'PART_'+ str(!OBJECTID!)", interpreter, None)
 
         return Poly_Grenz
 
@@ -196,7 +220,7 @@ class Partitionen(object):
             Muster_grenz = params[5].valueAsText
 
             #  Main programme
-            out_siedgr = ibtool.siedgr(input_HU, int(cell_size), float(density_value))
+            out_siedgr = ibtool.siedgr(input_HU, int(cell_size), float(str(density_value).replace(',','.')))
 
             #  Conflict check
             if str(Muster_grenz) != 'None':
@@ -211,5 +235,7 @@ class Partitionen(object):
                 arcpy.DeleteFeatures_management('out_siedgr_line')
 
             #  Output
+            arcpy.AddMessage("  Copying final files for savekeeping (if this failes [because we don't overwrite], the source is here: " + str(out_siedgr) + ')')
+            arcpy.env.overwriteOutput = False
             arcpy.CopyFeatures_management(out_siedgr, out_put_poly)
 
