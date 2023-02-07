@@ -731,6 +731,8 @@ class IbTool:
                 fieldname = "fkt"
             elif len(arcpy.ListFields(HU_Input, "funktion")) > 0:
                 fieldname = "funktion"
+            elif len(arcpy.ListFields(HU_Input, "GFK")) > 0: #NRW default
+                fieldname = "GFK"
 
             # converts filter.txt entry to lists
             file = open('{}'.format(filename), 'r')
@@ -1406,6 +1408,7 @@ class IbTool:
         Shp_Area(InputBdg)
         Rename_Field(InputBdg, "Shape_Area", "Area", "DOUBLE")
         arcpy.management.MinimumBoundingGeometry(InputBdg, InputBdgMBG, "RECTANGLE_BY_AREA", "NONE", None, "MBG_FIELDS")
+        arcpy.management.CalculateField(InputBdgMBG, 'Area', '!shape.area!', "PYTHON3", '', 'FLOAT') #Is this necessary because of Pro (handled ArcMap Area differently?)
         arcpy.management.AddJoin(point_input_FL, "ORIG_FID", InputBdgMBG, "ORIG_FID", "KEEP_ALL")
 
         arcpy.analysis.SpatialJoin(SelectionDelaunayLines, point_input_FL, SelectionDelaunayLinesJoin,
@@ -1413,6 +1416,7 @@ class IbTool:
         arcpy.management.Sort(SelectionDelaunayLinesJoin, SelectionDelaunayLinesJoinSort, "EDGE ASCENDING", "UR")
 
         EDGE2 = 0
+        Log('Debug', str({f.name: f.type for f in arcpy.ListFields(SelectionDelaunayLinesJoinSort)}))
         with arcpy.da.SearchCursor(SelectionDelaunayLinesJoinSort, ["x1", "y1", "x2", "y2", "EDGE", "InputBdgMBG_Area",
                                                                     "InputBdgMBG_MBG_Orientation"]) as cursor5:
             for z in cursor5:
@@ -2343,7 +2347,7 @@ def main():
                 with arcpy.da.SearchCursor(Partition, ["NAME"]) as CursorPartitionen:
                     for i in CursorPartitionen:
                         partlist.append(i)
-                del CursorPartitionen, i
+                del CursorPartitionen, i #redundant?
             if partstart != -1 and partend != -1:
                 # print("partstart with values")
                 partlist = []
@@ -2356,7 +2360,7 @@ def main():
             for j in partlist:
                 unicodestr = j[0]
                 utf8str = unicodestr.encode("utf-8")
-                newlist.append(utf8str)
+                newlist.append(utf8str.decode())
             partlist = newlist
         else:
             newlist = []
@@ -2391,7 +2395,7 @@ def main():
 
         lenpartlist = len(partlist)
         for i in partlist:
-
+            Log('Debug', "Processing Part: " + str(i))
             a = 0
             isin = False
             Partlog = open(PartLogPath, 'r+')
@@ -2401,7 +2405,7 @@ def main():
                     isin = True
                 a = a + 1
             if isin is False:
-                Partlog.write("\n" + i)
+                Partlog.write("\n" + str(i))
                 Partlog.close()
             if isin is True:
                 Partlog.close()
@@ -2660,7 +2664,10 @@ def main():
         else:
             Log("Info", "No Refinement")
 
-        DelName([AuxLayers_Line, AuxLayers_Poly, GapFix_out])
+        try:
+            DelName([AuxLayers_Line, AuxLayers_Poly, GapFix_out])
+        except:
+            pass
         arcpy.Delete_management("Tmp.gdb")
         DelName(['IB_Tool_Results', 'Tmp'])
 

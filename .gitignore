@@ -1,0 +1,5 @@
+.project
+.pydevproject
+notebook_test_arcgispro/**
+.ipynb_checkpoints/**
+**.pyt.xml
